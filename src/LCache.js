@@ -1,19 +1,25 @@
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /*=====================================================
  *
- *	_LCache : A Really Small JavaScript Library
+ *	LCache : A Really Small JavaScript Library
  *	(c) Naveen Kumar 2015
  *
  ======================================================*/
 
 /*	LCache Object Constructor
- ========================*/
-var _instance, _data = JSON;
+ =============================*/
+var lcache;
+window.onload = function(){
+	window.lcache = new LCache();
+	var script  = document.createElement('script');
+	script.src  = 'config.js';
+	script.type = 'text/javascript';
+	script.defer = true;
+	document.getElementsByTagName('head').item(0).appendChild(script);
+}
+window.onunload = window.onbeforeunload = (function(){
+    lcache._data = null;
+});
+var _instance, _data = new Object();
 var LCache = function LCache() {
     if (!_instance) {
         _instance = this;
@@ -31,11 +37,9 @@ LCache.prototype = {
         if (!key || !value || !method) {
             if (!key) {
                 throw 'Key must be provided to store data.';
-            }
-            if (!method) {
+            } else if (!method) {
                 throw 'No value provided to be stored.';
-            }
-            if (!method) {
+            } else  if (!method) {
                 throw 'Method not provided.';
             }
         } else {
@@ -43,12 +47,21 @@ LCache.prototype = {
                 if (this.fetch(key)) {
                     throw 'Data with give key already exists. Please provide new key or use update method to update existing data';
                 }
-                _data[key] = value;
+                var destroyTimer =setInterval(function () {
+					delete _data[key]; 
+				}, LCache.DATA_LIFE * 60 * 1000);
+
+                return _data[key] = {value:value,timeout:destroyTimer}
             } else if (method === LCache.UPDATE) {
                 if (!this.fetch(key)) {
-                    throw 'Data with given key not avaailable to be update.';
+                    throw 'Data with given key not available to be update.';
                 }
-                _data[key] = value;
+				window.clearInterval(_data[key].timeout);
+				var destroyTimer =setInterval(function () {
+					delete _data[key]; 
+				}, LCache.DATA_LIFE * 60 *  1000);
+
+                return _data[key] = {value:value,timeout:destroyTimer}
             } else {
                 throw 'Incorrect method name.';
             }
@@ -58,7 +71,7 @@ LCache.prototype = {
         if (!key) {
             throw 'No Key provided to fetch the data.';
         }
-        return _data[key];
+        return _data[key]?_data[key].value:null;
     },
     remove: function (key) {
         if (!key) {
